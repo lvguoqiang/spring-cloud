@@ -42,3 +42,195 @@
 	      defaultZone: http://localhost:8761/eureka/  #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
 	```
 	* Application 加注解 `@EnableEurekaServer`
+
+## 将之前的用户微服务注册到 eureka server
+
+1. 复制之前的项目 microserver-simple-provider-user, 将 AritifactId 修改为 microserver-provider-user
+2. 添加依赖
+
+```
+<dependency>
+	<groupId>org.springframework.cloud</groupId>
+	<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+</dependency>
+
+<dependencyManagement>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-dependencies</artifactId>
+			<version>Finchley.M9</version>
+			<type>pom</type>
+			<scope>import</scope>
+		</dependency>
+	</dependencies>
+</dependencyManagement>
+```
+
+3. 配置 application.yml
+
+```
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+```
+
+4. 启动类加注解 `@EnableDiscoveryClient`
+
+## 将之前的电影微服务注册到 Eureka Server 上
+
+1. 复制之前的 Microserver-simple-consumber-movie, 并将 AritifactId 修改为 microserver-consumber-movie
+2. 添加依赖
+
+```
+<dependency>
+	<groupId>org.springframework.cloud</groupId>
+	<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+</dependency>
+
+<dependencyManagement>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-dependencies</artifactId>
+			<version>Finchley.M9</version>
+			<type>pom</type>
+			<scope>import</scope>
+		</dependency>
+	</dependencies>
+</dependencyManagement>
+```
+
+3. 配置 application.yml
+
+```
+spring:
+  application:
+    name: microserver-consume-movie
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/Eureka
+```
+
+## Eureka Server 的高可用
+
+1. 简述
+单节点的 Eureka Server 并不合适线上生产环境. 因为我们要做到即使 Eureka Server 发生宕机也不会影响微服务之间的调用. 我们这里将配置一个双节点的Eureka Server 集群
+
+2. 复制项目 microserver-discovery-eureka, 将 ArtifactId 修改为 microserver-discover-eureka-ha.
+
+3. 配置系统中的 hosts, Windows 系统的路径为: C:\Windows\System32\driver\etc\hosts; Linux 及 Mac OS 等系统的文件路径是 /etc/hosts. 
+127.0.0.1 peer1 peer2
+
+4. 配置 application.yml
+
+```
+spring:
+  application:
+    name: microserver-discory-eureka-ha
+---
+
+spring:
+  #指定profiles 为peer1
+  profiles: peer1
+server:
+  port: 8761
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8762/eureka/ #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
+  instance:
+    hostname: peer1
+---
+spring:
+  profiles: peer2
+server:
+  port: 8762
+eureka:
+  instance:
+    hostname: peer2
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
+```
+
+5. 启动测试
+
+```
+java -jar microserver-cloud-starter-eureka-server-ha-0.0.1-SNAPSHOT.jar --spring.profiles.active=peer1
+java -jar microserver-cloud-starter-eureka-server-ha-0.0.1-SNAPSHOT.jar --spring.profiles.active=peer2
+```
+可以发现在 `localhost:8761` 节点可以发现 peer2, 在 `localhost:8762` 可以发现 peer1
+
+## 将项目注册到集群
+以 microserver-consume-movie为例说明
+1. 配置 application.yml
+
+```
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/,http://localhost:8762/eureka/
+```
+这样配置的效果与单个节点的配置是一样的, 但是最好还是配置多个节点
+
+## 为 Eureka Server 添加用户认证
+
+1. 复制项目 microserver-discovery-eureka, 将 ArtifactId 修改为 microserver-discover-eureka-authenticate.
+
+2. 添加依赖
+
+```
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
+
+3. 配置 application.yml
+之前的 serurity.basic.enable 等已经过时, 需要配置成下面的
+
+```
+spring:
+  security:
+    user:
+      name: user
+      password: password123
+```
+
+4. 配置 WebSecurityConfig
+由于我的 spring cloud 版本是 Finchley.M9, 用户名和密码的配置变成了 3, 然后在客户端连接的时候就各种报错
+`Cannot execute request on any known server`, 导致服务器注册失败, 折腾了好久, 原来是SpringBoot从2.0.0.RC1升级到2.0.0.RELEASE的时候，有个类SpringBootWebSecurityConfiguration发生了变化. 所以需要配置 WebSecurityConfig
+
+```
+@Configuration
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        super.configure(http);      
+        http.csrf().disable();
+    }
+}
+```
+
+5. 微服务注册到 Eureka Server
+只需要在地址前面添加 `user:password123@` 即可
+
+```
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://user:password123@localhost:8761/eureka/,http://user:password123@localhost:8762/eureka/
+```
