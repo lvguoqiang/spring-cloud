@@ -234,3 +234,118 @@ eureka:
     service-url:
       defaultZone: http://user:password123@localhost:8761/eureka/,http://user:password123@localhost:8762/eureka/
 ```
+
+## Eureka 的元数据
+
+Eureka 的元数据有两种, 标准元数据和自定义元数据. 标准元数据指的是主机名, IP地址, 端口号, 状态页和健康状态等信息, 这些信息被发布到服务注册表中, 用于服务之间的调用. 例如: 之前硬编码的问题, 我们可以通过元数据来解决
+
+1. 改造用户微服务
+复制一份 microserver-provider-user
+
+2. 配置自定义元数据
+
+```
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    metadata-map:
+      my-metadata:  我自己定义的元数据
+```
+
+3. 电影微服务获取元数据
+
+```
+@Autowired
+DiscoveryClient discoveryClient;
+
+@Override
+public String getHostAndIp(String serverId) {
+    List<ServiceInstance> serviceInstances = discoveryClient.getInstances(serverId);
+    if (CollectionUtils.isEmpty(serviceInstances)) {
+        return url;
+    }
+    EurekaDiscoveryClient.EurekaServiceInstance eurekaServiceInstance = (EurekaDiscoveryClient.EurekaServiceInstance) serviceInstances.get(0);
+    InstanceInfo instanceInfo = eurekaServiceInstance.getInstanceInfo();
+    return String.valueOf((instanceInfo.getIPAddr().concat(":")
+            .concat(String.valueOf(instanceInfo.getPort()))));
+}
+
+@Override
+public List<ServiceInstance> getInstance(String serverId) {
+    return discoveryClient.getInstances(serverId);
+}
+```
+
+## Eureka 的自我保护模式
+
+默认情况下, 如果 Eureka Server 在一定时间内没有接收到某个服务的心跳, Eureka Server 将注销该实例(默认90秒), 但是如果是网络区发生故障导致 Eureka Server 与微服务没法通信, 那么这种操作就比较危险了-微服务本身是健康的, 此时不应该注销该实例.
+
+Eureka 通过自我保护模式来解决这个问题 - 当 Eureka Server 在短时间内丢失过多客户端, 那么这个节点就会进入自我保护模式, Eureka Server 不再删除注册表中的信息. 当网络故障恢复后, 自动退出自我保护模式. 
+
+Eureka 的自我保护模式是宁可保留所有微服务信息, 也不盲目注销任何健康的微服务, 这可以使 Eureka 集群更加健壮.
+
+在 Spring Cloud 中可以使用, `eureka.server.enable-self-preservation = false` 禁用自我保护模式.
+
+## Eureka 多网络环境的 IP 选择
+
+1. 有什么用?
+	如果某台服务器有三块网卡, 	eth0, eth1, eth2, 但是只有 eth1 这个网卡, 可以被外网访问, 那么如果, Eureka Client 将 eth0, eth2 注册到 Eureka Server 上, 其它微服务不能通过该IP调用, 这就会出现问题了.
+2. 如何选择 ip
+	* 忽略指定网卡的名称
+
+	```
+	spring:
+		cloud:
+			inetutils:
+				ignored-interfaces:
+					- docker0
+					- veth.*
+		eureka:
+			instance:
+				perfer-ip-addres: true
+	```
+	这样就可以忽略 docker0, 以及 veth 打头的网卡
+
+	* 使用正则表达式, 指定使用的网络地址
+
+	```
+	spring:
+		could:
+			perferedNetworks
+				- 192.168
+				- 10.0
+	```
+
+	* 只使用站点本地地址
+
+	```
+	spring:
+		could:
+			inetutils:
+				useOnlySiteLocalInterfaces: true
+	eureka:
+		instance:
+			perfer-ip-address: true
+	```
+
+	* 手动指定 ip
+
+	```
+	eureka:
+		instance:
+			prefer-ip-address: true
+			ip-address:	127.0.0.1
+	```
+
+## Eureka 的健康检查
+就是将微服务的 Actuator 提供的健康信息, 反馈到 Eureka Server
+
+```
+eureka:
+  client:
+    healthcheck:
+      enabled: true
+```
