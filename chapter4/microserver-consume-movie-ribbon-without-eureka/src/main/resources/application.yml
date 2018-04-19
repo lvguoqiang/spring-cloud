@@ -1,0 +1,16 @@
+server:
+  port: 8002
+
+info:
+  app:
+    name: @project.artifactId@
+    encoding: @project.build.sourceEncoding@
+    java:
+      source: @java.version@
+      target: @java.version@
+spring:
+  application:
+    name: microserver-consume-movie
+microserver-provider-user:
+  ribbon:
+    listOfServers: localhost:8000,localhost:8001
