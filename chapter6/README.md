@@ -195,9 +195,52 @@ class FeignClientFallback implements UserFeignClient {
 }
 ```
 
+- 配置 yml
 
+```
+feign:
+  hystrix:
+    enabled: true
+```
 
+## 通过 Fallback Factory 检查回退原因
 
+修改项目 microserver-consume-movie-feign-hystrix 的 UserFeignClient
+
+```
+@FeignClient(name = "microserver-provider-user", fallbackFactory = FeignClientFallbackFactory.class)
+public interface UserFeignClient {
+
+    /**
+     *
+     * @param id
+     * @return
+     */
+    @GetMapping("/user/{id}")
+    public User queryById(@PathVariable("id") Long id);
+}
+
+@Component
+class FeignClientFallbackFactory implements FallbackFactory<UserFeignClient> {
+
+    private static Logger logger = LoggerFactory.getLogger(FeignClientFallbackFactory.class);
+
+    @Override
+    public UserFeignClient create(Throwable throwable) {
+
+        return new UserFeignClient() {
+            @Override
+            public User queryById(Long id) {
+                logger.info("fallback; reason was:" + throwable);
+                return User.builder()
+                        .id(-1L)
+                        .name("默认用户")
+                        .build();
+            }
+        };
+    }
+}
+```
 
 
 

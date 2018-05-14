@@ -1,6 +1,9 @@
 package com.hand.microserverconsumemovie.feign;
 
 import com.hand.microserverconsumemovie.models.User;
+import feign.hystrix.FallbackFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
  * @version 1.0
  * @date 2018/5/14
  */
-@FeignClient(name = "microserver-provider-user", fallback = FeignClientFallback.class)
+@FeignClient(name = "microserver-provider-user", fallbackFactory = FeignClientFallbackFactory.class)
 public interface UserFeignClient {
 
     /**
@@ -24,13 +27,22 @@ public interface UserFeignClient {
 }
 
 @Component
-class FeignClientFallback implements UserFeignClient {
+class FeignClientFallbackFactory implements FallbackFactory<UserFeignClient> {
+
+    private static Logger logger = LoggerFactory.getLogger(FeignClientFallbackFactory.class);
 
     @Override
-    public User queryById(Long id) {
-        return User.builder()
-                .id(-1L)
-                .name("默认用户")
-                .build();
+    public UserFeignClient create(Throwable throwable) {
+
+        return new UserFeignClient() {
+            @Override
+            public User queryById(Long id) {
+                logger.info("fallback; reason was:" + throwable);
+                return User.builder()
+                        .id(-1L)
+                        .name("默认用户")
+                        .build();
+            }
+        };
     }
 }
