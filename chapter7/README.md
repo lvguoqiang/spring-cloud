@@ -236,9 +236,11 @@ public class PreRequestLogFilter extends ZuulFilter {
 - 修改启动类, 添加以下内容
 
 ```
-@Bean
+	@Bean
 	public PreRequestLogFilter preRequestLogFilter() {
 		return new PreRequestLogFilter();
 	}
 ```
 
+# Zuul 的高可用
+将多个实例都注册到 Eureka Server 上即可.
