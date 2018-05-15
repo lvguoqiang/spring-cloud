@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: microserver-foo
+  cloud:
+    config:
+      uri: http://localhost:8080/
+      profile: dev
+      label: config-label-v1.0
