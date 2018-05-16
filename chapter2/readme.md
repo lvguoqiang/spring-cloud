@@ -79,3 +79,14 @@ public User queryById(@PathVariable Long id) {
 这样做还是有很多局限性:
 	* 使用范围有局限性: 服务提供者的端口和IP修改之后, 还是得修改配置文件, 重新发布服务
 	* 无法动态伸缩: 在生产环境, 每一个微服务都会有多个实例, 从而实现容错和负载均衡. 这里很明显做不到
+
+## Actuator 问题
+
+- health 信息显示不全
+
+```
+management:
+  endpoint:
+    health:
+      show-details: always
+```
