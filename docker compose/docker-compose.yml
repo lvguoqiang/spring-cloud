@@ -1,0 +1,38 @@
+version: "2"
+services:
+  microservice-discory-eureka:
+    image: lvguoqiang/microservice-discory-eureka:0.0.1-SNAPSHOT
+    ports:
+      - "8761:8761"
+    environment:
+     HOSTNAME: discovery
+  microservice-provider-user:
+    image: lvguoqiang/microservice-provider-user:0.0.1-SNAPSHOT
+    ports:
+      - "8001:8001"
+    links:
+      - microservice-discory-eureka:discovery
+  microservice-consumer-movie-ribbon-hystrix:
+    image: lvguoqiang/microservice-consumer-movie-ribbon-hystrix:0.0.1-SNAPSHOT
+    ports:
+      - "8002:8002"
+    links:
+      - microservice-discory-eureka:discovery
+  microservice-gateway-zuul:
+    image: lvguoqiang/microservice-gateway-zuul:0.0.1-SNAPSHOT
+    ports:
+      - "8050:8050"
+    links:
+      - microservice-discory-eureka:discovery
+  microservice-hystrix-dashboard: 
+    image: lvguoqiang/microservice-hystrix-dashboard:0.0.1-SNAPSHOT
+    ports:
+      - "8030:8030"
+    links:
+      - microservice-discory-eureka:discovery 
+  microservice-hystrix-turbine:
+    image: lvguoqiang/microservice-hystrix-turbine:0.0.1-SNAPSHOT
+    ports:
+      - "8040:8040"
+    links:
+      - microservice-discory-eureka:discovery 
