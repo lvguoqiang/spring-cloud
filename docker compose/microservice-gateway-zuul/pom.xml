@@ -72,14 +72,14 @@
 				<configuration>
 					<imageName>lvguoqiang/${project.artifactId}:${project.version}</imageName>
 					<baseImage>java</baseImage>
-					<workdir>/</workdir>
+					<workdir>/ROOT</workdir>
 					<cmd>["java", "-version"]</cmd>
 					<entryPoint>["java", "-jar", "${project.build.finalName}.jar"]</entryPoint>
 					<resources>
 						<resource>
-							<targetPath>/</targetPath>
+							<targetPath>/ROOT</targetPath>
 							<directory>${project.build.directory}</directory>
-							<include>${project.build.finalName}</include>
+							<include>${project.build.finalName}.jar</include>
 						</resource>
 					</resources>
 				</configuration>
