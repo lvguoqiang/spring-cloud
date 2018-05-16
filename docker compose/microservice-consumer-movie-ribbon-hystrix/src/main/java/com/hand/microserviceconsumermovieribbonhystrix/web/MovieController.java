@@ -1,5 +1,6 @@
 package com.hand.microserviceconsumermovieribbonhystrix.web;
 
+import com.hand.microserviceconsumermovieribbonhystrix.fiegn.UserFeignClient;
 import com.hand.microserviceconsumermovieribbonhystrix.models.User;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
@@ -23,43 +24,12 @@ import java.util.Objects;
 @RestController
 public class MovieController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MovieController.class);
-
     @Autowired
-    RestTemplate restTemplate;
+    UserFeignClient userFeignClient;
 
-    @Autowired
-    LoadBalancerClient loadBalancerClient;
-
-    @HystrixCommand(fallbackMethod = "queryByIdFallBack", commandProperties = {
-            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "5000"),
-            @HystrixProperty(name = "metrics.rollingStats.timeInMilliseconds", value = "10000")
-    }, threadPoolProperties = {
-            @HystrixProperty(name = "coreSize", value = "1"),
-            @HystrixProperty(name = "maxQueueSize", value = "10")
-    })
     @GetMapping("/user/{id}")
     public User queryById(@PathVariable Long id) {
-        return restTemplate.getForObject("http://microservice-provider-user/user/" + id, User.class);
+        return userFeignClient.queryById(id);
     }
 
-    public User queryByIdFallBack(Long id) {
-        return User.builder()
-                .id(-1L)
-                .username("默认用户")
-                .build();
-
-    }
-
-    @GetMapping("/log-instance")
-    public String logUserInstance() {
-        ServiceInstance serviceInstance = this.loadBalancerClient.choose("microservice-provider-user");
-        if (Objects.isNull(serviceInstance)) {
-            return "can not find microservice-provider-user";
-        }
-        LOGGER.info("{}:{}:{}", serviceInstance.getServiceId(), serviceInstance.getHost(), serviceInstance.getPort());
-        return serviceInstance.getServiceId().concat(" : ")
-                .concat(serviceInstance.getHost().concat(" : ")
-                .concat(String.valueOf(serviceInstance.getPort())));
-    }
 }
