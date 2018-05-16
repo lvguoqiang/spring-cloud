@@ -10,7 +10,7 @@ info:
       target: @java.version@
 spring:
   application:
-    name: microserver-consume-movie
+    name: microserver-consume-movie-feign-hystrix-fallback-stream
 eureka:
   instance:
     prefer-ip-address: true
