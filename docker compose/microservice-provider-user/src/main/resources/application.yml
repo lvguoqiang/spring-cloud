@@ -21,6 +21,6 @@ logging:
 eureka:
   client:
     service-url:
-      defaultZone: defaultZone: http://peer1:8761/eureka/, http://peer2:8761/eureka/
+      defaultZone: http://peer1:8761/eureka/, http://peer2:8762/eureka/
   instance:
     prefer-ip-address: true
