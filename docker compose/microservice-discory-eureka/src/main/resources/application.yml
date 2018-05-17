@@ -11,7 +11,7 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://peer1:8762/eureka/ #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
+      defaultZone: http://peer2:8762/eureka/ #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
   instance:
     hostname: peer1
 ---
@@ -24,4 +24,4 @@ eureka:
     hostname: peer2
   client:
     service-url:
-      defaultZone: http://peer2:8761/eureka/ #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
+      defaultZone: http://peer1:8761/eureka/ #设置与 Eureka Server 交互的地址, 多个地址可用 , 隔开
